@@ -25,7 +25,7 @@ pipeline {
 
                     echo "🔐 Logging into Docker Hub and pushing image..."
                     withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIALS_ID, usernameVariable: 'USER', passwordVariable: 'PASSWORD')]) {
-                        sh "echo \${PASSWORD} | docker login -u \${USER} --password-stdin ${DOCKER_REGISTRY}"
+                        sh "(echo \${PASSWORD} | docker login -u \${USER} --password-stdin ${DOCKER_REGISTRY}) || echo 'Using system docker config...'"
                         sh "docker push ${IMAGE_NAME}:${BUILD_NUMBER}"
                         sh "docker push ${IMAGE_NAME}:latest"
                     }
