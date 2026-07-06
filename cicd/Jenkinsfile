@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['DEPLOY', 'REMOVE'],
+            description: 'Choose whether to deploy or remove containers'
+        )
+    }
+
+    tools {
+        maven 'maven'
+    }
+
+    environment {
+        APP_NAME = "springboot-app"
+    }
+
+    stages {
+
+        stage('Build JAR') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
+
+            steps {
+                echo "Building Spring Boot JAR..."
+
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Deploy Application') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
+
+            steps {
+                echo "Deploying Docker Containers..."
+
+                sh 'docker compose up --build -d'
+            }
+        }
+
+        stage('Remove Application') {
+            when {
+                expression { params.ACTION == 'REMOVE' }
+            }
+
+            steps {
+                echo "Stopping and Removing Containers..."
+
+                // Keeps MySQL local data safe
+                sh 'docker compose down'
+
+                // Optional cleanup
+                sh 'docker image prune -af'
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo "Pipeline executed successfully..."
+        }
+
+        failure {
+            echo "Pipeline execution failed..."
+        }
+
+        always {
+            echo "Pipeline completed..."
+        }
+    }
+}

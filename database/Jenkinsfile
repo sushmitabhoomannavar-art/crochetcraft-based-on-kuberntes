@@ -1,0 +1,110 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['start', 'stop', 'terminate'],
+            description: 'Choose what to do with the MySQL container'
+        )
+    }
+
+    environment {
+        CONTAINER_NAME = 'mysql-container'
+        MYSQL_IMAGE = 'mysql:8.0'
+        MYSQL_ROOT_PASSWORD = '1234'
+        MYSQL_PORT = '3306'
+    }
+
+    stages {
+        stage('Start Container') {
+            when {
+                expression {
+                    return params.ACTION == 'start'
+                }
+            }
+            steps {
+                script {
+                    def isRunning = sh(script: "docker ps -q -f name=${CONTAINER_NAME}", returnStdout: true).trim()
+                    def isExisting = sh(script: "docker ps -a -q -f name=${CONTAINER_NAME}", returnStdout: true).trim()
+
+                    if (isRunning) {
+                        echo "✅ Container '${CONTAINER_NAME}' is already running. Skipping start."
+                    } else if (isExisting) {
+                        echo "▶️ Container exists but not running. Starting it..."
+                        sh "docker start ${CONTAINER_NAME}"
+                    } else {
+                        echo "🚀 Running new MySQL container..."
+                        sh """
+                            docker run -d \
+                                --name ${CONTAINER_NAME} \
+                                -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} \
+                                -p ${MYSQL_PORT}:3306 \
+                                ${MYSQL_IMAGE}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Stop Container') {
+            when {
+                expression {
+                    return params.ACTION == 'stop'
+                }
+            }
+            steps {
+                script {
+                    def isRunning = sh(script: "docker ps -q -f name=${CONTAINER_NAME}", returnStdout: true).trim()
+                    if (isRunning) {
+                        echo "🛑 Stopping container..."
+                        sh "docker stop ${CONTAINER_NAME}"
+                    } else {
+                        echo "⚠️ Container not running. Nothing to stop."
+                    }
+                }
+            }
+        }
+
+        stage('Terminate Container') {
+            when {
+                expression {
+                    return params.ACTION == 'terminate'
+                }
+            }
+            steps {
+                script {
+                    def isExisting = sh(script: "docker ps -a -q -f name=${CONTAINER_NAME}", returnStdout: true).trim()
+                    if (isExisting) {
+                        echo "❌ Terminating container..."
+                        sh """
+                            docker stop ${CONTAINER_NAME} || true
+                            docker rm ${CONTAINER_NAME}
+                        """
+                    } else {
+                        echo "⚠️ Container does not exist. Nothing to terminate."
+                    }
+                }
+            }
+        }
+
+        stage('Show Container Status') {
+            steps {
+                echo "📦 Final Docker container status:"
+                sh "docker ps -a --filter name=${CONTAINER_NAME} || true"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Pipeline completed successfully for action: '${params.ACTION}'"
+        }
+        failure {
+            echo "❌ Pipeline failed while trying to perform action: '${params.ACTION}'"
+        }
+        always {
+            echo "ℹ️ Pipeline finished. Check logs above for details."
+        }
+    }
+}

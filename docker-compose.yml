@@ -1,0 +1,48 @@
+services:
+
+  mysql-container:
+    image: mysql:8.0
+    container_name: mysql-container
+
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: myapplication
+
+    ports:
+      - "3306:3306"
+
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+
+    networks:
+      - springboot-mysql-network
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  springboot-app:
+    build: .
+    container_name: springboot-app
+
+    ports:
+      - "8085:8080"
+
+    depends_on:
+      mysql-container:
+        condition: service_healthy
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-container:3306/myapplication?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 1234
+
+    networks:
+      - springboot-mysql-network
+
+networks:
+  springboot-mysql-network:
+    name: springboot-mysql-network
