@@ -52,8 +52,8 @@ pipeline {
         stage('Verify Kubernetes Deployment') {
             steps {
                 echo "🧪 Verifying rollouts and container status..."
-                sh "kubectl rollout status deployment/mysql-container --timeout=120s"
-                sh "kubectl rollout status deployment/springboot-app --timeout=120s"
+                sh "kubectl rollout status deployment/mysql-container --timeout=300s"
+                sh "kubectl rollout status deployment/springboot-app --timeout=300s"
                 sh "kubectl get pods,svc -l app=crochetcraft -o wide"
             }
         }
