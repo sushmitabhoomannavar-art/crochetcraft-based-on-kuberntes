@@ -145,14 +145,12 @@ spec:
                   name: mysql-secret
                   key: mysql-root-password
           livenessProbe:
-            httpGet:
-              path: /login
+            tcpSocket:
               port: 8080
             initialDelaySeconds: 60
             periodSeconds: 15
           readinessProbe:
-            httpGet:
-              path: /login
+            tcpSocket:
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
