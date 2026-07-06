@@ -58,20 +58,42 @@ Open two terminal windows on your local computer and SSH into **both `K8s-Master
 ssh -i /path/to/crochetcraft-key.pem ubuntu@<PUBLIC_IP>
 ```
 
-### 1. Install Docker & Kubernetes Components (Run on BOTH Master and Worker)
+### 1. Configure Kernel Modules & Install K8s Components (Run on BOTH Master and Worker)
 ```bash
-# Update system & install prerequisites
+# 1. Load required kernel modules for Kubernetes networking
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+# 2. Persist kernel modules and enable IP forwarding / iptables bridge traffic
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+sudo sysctl --system
+
+# 3. Update system & install Docker and containerd
 sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates curl docker.io
+
+# Configure containerd for Kubernetes CRI
+sudo rm -f /etc/containerd/config.toml
+sudo systemctl restart containerd
 
 # Enable and start Docker
 sudo systemctl enable --now docker
 sudo usermod -aG docker ubuntu
 
-# Add Kubernetes official GPG key and repository
+# 4. Add Kubernetes official GPG key and repository
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
-# Install kubelet, kubeadm, and kubectl
+# 5. Install kubelet, kubeadm, and kubectl
 sudo apt-get update
 sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
