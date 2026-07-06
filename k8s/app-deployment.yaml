@@ -26,7 +26,9 @@ spec:
               name: http
           env:
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mysql://mysql-container:3306/myapplication?createDatabaseIfNotExist=true
+              value: jdbc:mysql://mysql-container:3306/myapplication?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
+            - name: SPRING_JPA_DATABASE_PLATFORM
+              value: org.hibernate.dialect.MySQLDialect
             - name: SPRING_DATASOURCE_USERNAME
               value: root
             - name: SPRING_DATASOURCE_PASSWORD
