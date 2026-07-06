@@ -76,17 +76,15 @@ spec:
             - name: mysql-persistent-storage
               mountPath: /var/lib/mysql
           livenessProbe:
-            exec:
-              command: ["mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+            tcpSocket:
+              port: 3306
             initialDelaySeconds: 30
             periodSeconds: 10
-            timeoutSeconds: 5
           readinessProbe:
-            exec:
-              command: ["mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+            tcpSocket:
+              port: 3306
             initialDelaySeconds: 15
             periodSeconds: 10
-            timeoutSeconds: 5
       volumes:
         - name: mysql-persistent-storage
           persistentVolumeClaim:
