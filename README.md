@@ -137,10 +137,10 @@ Open a third terminal window and SSH into your **`Jenkins-Server` (EC2 #1)**:
 ssh -i /path/to/crochetcraft-key.pem ubuntu@<JENKINS_PUBLIC_IP>
 ```
 
-### 1. Install Java 17, Maven, Docker & Jenkins
+### 1. Install Java 21, Maven, Docker & Jenkins
 ```bash
-# Install Java, Maven & Docker
-sudo apt-get update && sudo apt-get install -y openjdk-17-jdk maven docker.io
+# Install Java 21 (Required by Jenkins 2.555+), Maven & Docker
+sudo apt-get update && sudo apt-get install -y openjdk-21-jdk fontconfig maven docker.io
 
 # Enable Docker and add ubuntu user
 sudo systemctl enable --now docker
@@ -160,8 +160,12 @@ sudo systemctl restart jenkins
 
 ### 2. Install & Configure `kubectl` for Jenkins
 ```bash
+# Add Kubernetes official GPG key and repository
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
 # Install kubectl
-sudo apt-get install -y kubectl
+sudo apt-get update && sudo apt-get install -y kubectl
 
 # Create kubeconfig directory for Jenkins
 sudo mkdir -p /var/lib/jenkins/.kube
