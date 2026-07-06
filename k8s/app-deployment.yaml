@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-app
+  labels:
+    app: crochetcraft
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crochetcraft
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: crochetcraft
+        component: backend
+    spec:
+      containers:
+        - name: springboot-app
+          image: sushmitabhoomannavar-art/crochetcraft-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql-container:3306/myapplication?createDatabaseIfNotExist=true
+            - name: SPRING_DATASOURCE_USERNAME
+              value: root
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-root-password
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: springboot-app-service
+  labels:
+    app: crochetcraft
+    component: backend
+spec:
+  ports:
+    - port: 8085
+      targetPort: 8080
+      nodePort: 30085
+  selector:
+    app: crochetcraft
+    component: backend
+  type: NodePort

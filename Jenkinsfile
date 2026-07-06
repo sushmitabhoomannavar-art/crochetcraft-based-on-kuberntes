@@ -5,62 +5,72 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = 'spring-app'
-        CONTAINER_NAME = 'spring-app-container'
-        APP_PORT = '8083'
+        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_USER = 'sushmitabhoomannavar-art'
+        IMAGE_NAME = 'sushmitabhoomannavar-art/crochetcraft-app'
+        REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
     }
 
     stages {
         stage('Build JAR') {
             steps {
+                echo "🔨 Building Spring Boot application..."
                 sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                sh "docker build -t ${IMAGE_NAME} ."
-            }
-        }
-
-        stage('Run Docker Container If Not Running') {
+        stage('Build & Push Docker Image') {
             steps {
                 script {
-                    def isRunning = sh(script: "docker ps -q -f name=${CONTAINER_NAME}", returnStdout: true).trim()
+                    echo "📦 Building Docker image ${IMAGE_NAME}:${BUILD_NUMBER} and latest..."
+                    sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ."
+                    sh "docker build -t ${IMAGE_NAME}:latest ."
 
-                    if (isRunning) {
-                        echo "🚫 Container '${CONTAINER_NAME}' is already running. Skipping run."
-                    } else {
-                        def exists = sh(script: "docker ps -a -q -f name=${CONTAINER_NAME}", returnStdout: true).trim()
-                        if (exists) {
-                            echo "🔁 Container exists but not running. Removing it..."
-                            sh "docker rm ${CONTAINER_NAME}"
-                        }
-
-                        echo "🚀 Starting new Docker container..."
-                        sh "docker run -d --name ${CONTAINER_NAME} -p ${APP_PORT}:8080 ${IMAGE_NAME}"
+                    echo "🔐 Logging into Docker Hub and pushing image..."
+                    withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIALS_ID, usernameVariable: 'USER', passwordVariable: 'PASSWORD')]) {
+                        sh "echo \${PASSWORD} | docker login -u \${USER} --password-stdin ${DOCKER_REGISTRY}"
+                        sh "docker push ${IMAGE_NAME}:${BUILD_NUMBER}"
+                        sh "docker push ${IMAGE_NAME}:latest"
                     }
                 }
             }
         }
 
-        stage('Show Container Status') {
+        stage('Deploy to Kubernetes') {
             steps {
-                echo "📦 Current Docker containers:"
-                sh "docker ps -a --filter name=${CONTAINER_NAME}"
+                script {
+                    echo "☸️ Deploying MySQL database and Spring Boot app to Kubernetes cluster..."
+                    // Apply MySQL deployment and PV/PVC
+                    sh "kubectl apply -f k8s/mysql-deployment.yaml"
+                    
+                    // Apply Spring Boot application deployment and service
+                    sh "kubectl apply -f k8s/app-deployment.yaml"
+                    
+                    // Update deployment with the newly built Docker image tag
+                    sh "kubectl set image deployment/springboot-app springboot-app=${IMAGE_NAME}:${BUILD_NUMBER}"
+                }
+            }
+        }
+
+        stage('Verify Kubernetes Deployment') {
+            steps {
+                echo "🧪 Verifying rollouts and container status..."
+                sh "kubectl rollout status deployment/mysql-container --timeout=120s"
+                sh "kubectl rollout status deployment/springboot-app --timeout=120s"
+                sh "kubectl get pods,svc -l app=crochetcraft -o wide"
             }
         }
     }
 
     post {
         success {
-            echo "✅ Spring Boot container is handled successfully."
+            echo "✅ Spring Boot app and MySQL deployed successfully to Kubernetes!"
         }
         failure {
-            echo "❌ Something went wrong with the deployment."
+            echo "❌ Pipeline execution failed. Check console logs for details."
         }
         always {
-            echo "ℹ️ Pipeline finished. Check logs above for final status."
+            echo "ℹ️ Pipeline completed."
         }
     }
 }
