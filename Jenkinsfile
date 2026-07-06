@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         DOCKER_REGISTRY = 'docker.io'
-        DOCKER_USER = 'sushmitabhoomannavar-art'
-        IMAGE_NAME = 'sushmitabhoomannavar-art/crochetcraft-app'
+        DOCKER_USER = 'sushmitacb'
+        IMAGE_NAME = 'sushmitacb/crochetcraft-app'
         REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
     }
 

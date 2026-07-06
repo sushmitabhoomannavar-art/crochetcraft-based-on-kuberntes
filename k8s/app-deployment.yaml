@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: springboot-app
-          image: sushmitabhoomannavar-art/crochetcraft-app:latest
+          image: sushmitacb/crochetcraft-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
