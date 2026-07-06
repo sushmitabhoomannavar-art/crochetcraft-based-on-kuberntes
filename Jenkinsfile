@@ -1,8 +1,5 @@
 pipeline {
     agent any
-    tools {
-        maven 'maven'
-    }
 
     environment {
         DOCKER_REGISTRY = 'docker.io'
